@@ -129,12 +129,16 @@ if [ ! -f "bedrock_server-${VERSION}" ]; then
   bkupDir=backup-pre-${VERSION}
   # fixup any previous interrupted upgrades
   rm -rf "${bkupDir}"
-  for d in behavior_packs definitions minecraftpe resource_packs structures treatments world_templates
-  do
-    if [ -d $d ]; then
-      mkdir -p $bkupDir
+  for d in behavior_packs definitions minecraftpe resource_packs structures treatments world_templates; do
+    if [[ -d $d && -n "$(ls $d)" ]]; then
+      mkdir -p $bkupDir/$d
       echo "Backing up $d into $bkupDir"
-      mv $d $bkupDir
+      if [[ "$d" == "resource_packs" ]]; then
+        mv $d/{chemistry,vanilla} $bkupDir/
+        [[ -n "$(ls $d)" ]] && cp -a $d/* $bkupDir/
+      else
+        mv $d/* $bkupDir/
+      fi
     fi
   done
 
@@ -165,23 +169,24 @@ if [ -n "$OPS" ] || [ -n "$MEMBERS" ] || [ -n "$VISITORS" ]; then
   ]| flatten' > permissions.json
 fi
 
+if [[ -n "$ALLOW_LIST_USERS" || -n "$WHITE_LIST_USERS" ]]; then
+  allowListUsers=${ALLOW_LIST_USERS:-$WHITE_LIST_USERS}
 
-if [[ -v ALLOW_LIST_USERS || -v WHITE_LIST_USERS ]]; then
-  allowListUsers=${ALLOW_LIST_USERS:-${WHITE_LIST_USERS}}
-
-  WHITE_LIST=false
-  rm -f whitelist.json
-  if [[ $allowListUsers ]]; then
+  if [[ "$allowListUsers" ]]; then
     echo "Setting allow list"
     jq -c -n --arg users "$allowListUsers" '$users | split(",") | map({"ignoresPlayerLimit":false,"name": .})' > "allowlist.json"
     # activate server property to enable list usage
     ALLOW_LIST=true
   else
-    rm -rf allowlist.json
     ALLOW_LIST=false
+    rm -f allowlist.json
   fi
-  export WHITE_LIST ALLOW_LIST
+else
+  ALLOW_LIST=false
+  rm -f allowlist.json
 fi
+sed -i '/^white-list=.*/d' server.properties #Removes white-list= line from server.properties
+export ALLOW_LIST
 
 set-property --file server.properties --bulk /etc/bds-property-definitions.json
 

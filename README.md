@@ -47,11 +47,12 @@ For Minecraft Java Edition you'll need to use this image instead:
   bedrock server process
 - `GID` (default derived from `/data` owner) : can be set to a specific group ID to run the
   bedrock server process
+- `TZ` (no default): can be set to a specific timezone like `America/New_York`. This will set the timezone for the Docker container and therefore their logs. Addtionally, if you want to sync the time with the host, you can mount the `/etc/localtime` file from the host to the container like `/etc/localtime:/etc/localtime:ro`.
 - `PACKAGE_BACKUP_KEEP` (`2`) : how many package backups to keep
 
 ### Server Properties
 
-The following environment variables will set the equivalent property in `server.properties`, where each [is described here](https://minecraft.gamepedia.com/Server.properties#Bedrock_Edition_3).
+The following environment variables will set the equivalent property in `server.properties`, where each [is described here](https://minecraft.wiki/w/Server.properties#Bedrock_Edition_3).
 
 - `SERVER_NAME`
 - `SERVER_PORT`
@@ -148,7 +149,7 @@ are also printed to the log when a player joins. There are 3 levels of permissio
 
 There are two ways to handle a whitelist:
 
-The first is to set the `ALLOW_LIST` environment variable to true and map in an [allowlist.json](https://minecraft.gamepedia.com/Whitelist.json) file (previously known as "whitelist.json") that is custom-crafted to the container. 
+The first is to set the `ALLOW_LIST` environment variable to true and map in an [allowlist.json](https://minecraft.wiki/w/Whitelist.json) file (previously known as "whitelist.json") that is custom-crafted to the container. 
 
 The other is to set the `ALLOW_LIST_USERS` environment variable to a comma-separated list of gamer tag usernames that should be allowed. The server will look up the names and add in the XUID to match the player.
 
