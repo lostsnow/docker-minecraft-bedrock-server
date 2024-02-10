@@ -6,7 +6,7 @@ on:
       - master
       - test/**
     tags:
-      - "[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+"
     paths-ignore:
       - README.md
   pull_request:
