@@ -1,6 +1,6 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/itzg/minecraft-bedrock-server.svg)](https://hub.docker.com/r/itzg/minecraft-bedrock-server/)
 [![GitHub Issues](https://img.shields.io/github/issues-raw/itzg/docker-minecraft-bedrock-server.svg)](https://github.com/itzg/docker-minecraft-bedrock-server/issues)
-[![Build](https://github.com/itzg/docker-minecraft-bedrock-server/workflows/Build/badge.svg)](https://github.com/itzg/docker-minecraft-bedrock-server/actions?query=workflow%3ABuild)
+[![Build](https://github.com/itzg/docker-minecraft-bedrock-server/workflows/CI/badge.svg)](https://github.com/itzg/docker-minecraft-bedrock-server/actions?query=workflow%3ACI)
 [![Discord](https://img.shields.io/discord/660567679458869252?label=Discord&logo=discord)](https://discord.gg/ScbTrAw)
 [![](https://img.shields.io/badge/Donate-Buy%20me%20a%20coffee-orange.svg)](https://www.buymeacoffee.com/itzg)
 
@@ -134,15 +134,15 @@ are also printed to the log when a player joins. There are 3 levels of permissio
 
 - `OPS` is used to define operators on the server.  
 ```shell
--e OPS "1234567890,0987654321"
+-e OPS="1234567890,0987654321"
 ```
 - `MEMBERS` is used to define the members on the server.
 ```shell
--e MEMBERS "1234567890,0987654321"
+-e MEMBERS="1234567890,0987654321"
 ```
 - `VISITORS` is used to define visitors on the server.
 ```shell
--e VISITORS "1234567890,0987654321"
+-e VISITORS="1234567890,0987654321"
 ```
 
 ## Allowlist
@@ -151,10 +151,12 @@ There are two ways to handle a whitelist:
 
 The first is to set the `ALLOW_LIST` environment variable to true and map in an [allowlist.json](https://minecraft.wiki/w/Whitelist.json) file (previously known as "whitelist.json") that is custom-crafted to the container. 
 
-The other is to set the `ALLOW_LIST_USERS` environment variable to a comma-separated list of gamer tag usernames that should be allowed. The server will look up the names and add in the XUID to match the player.
+The other is to set the `ALLOW_LIST_USERS` environment variable to a comma-separated list of gamer tag usernames and their corresponding XUIDs. Each username should be followed by its XUID, separated by a colon. The server will use these details to match the player.
+
+There are various tools to look XUIDs up online and they are also printed to the log when a player joins the server.
 
 ```shell
--e ALLOW_LIST_USERS="player1,player2,player3"
+-e ALLOW_LIST_USERS="player1:1234567890,player2:0987654321"
 ```
 
 ## Mods Addons 

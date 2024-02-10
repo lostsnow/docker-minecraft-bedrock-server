@@ -6,30 +6,24 @@ set -eo pipefail
 : "${PREVIEW:=false}"
 
 function isTrue() {
-  case "${1,,}" in
-  true | on | 1)
-    return 0
-    ;;
-  *)
-    return 1
-    ;;
-  esac
+  [[ "${1,,}" =~ ^(true|on|1)$ ]] && return 0
+  return 1
 }
 
 function lookupVersion() {
   platform=${1:?Missing required platform indicator}
 
+  # shellcheck disable=SC2034
   for i in {1..3}; do
     DOWNLOAD_URL=$(restify --user-agent=itzg/minecraft-bedrock-server --headers "accept-language:*" --attribute=data-platform="${platform}" "${downloadPage}" 2> restify.err | jq -r '.[0].href' || echo '')
-    if [[ ${DOWNLOAD_URL} ]]; then
-      break 2
-    fi
+    [[ -n "${DOWNLOAD_URL}" ]] && break
     sleep 1
   done
   if [[ -z ${DOWNLOAD_URL} ]]; then
     DOWNLOAD_URL=$(curl -s https://mc-bds-helper.vercel.app/api/latest)
   fi
 
+  # shellcheck disable=SC2012
   if [[ ${DOWNLOAD_URL} =~ http.*/.*-(.*)\.zip ]]; then
     VERSION=${BASH_REMATCH[1]}
   elif [[ $(ls -rv bedrock_server-* 2> /dev/null|head -1) =~ bedrock_server-(.*) ]]; then
@@ -49,12 +43,14 @@ function lookupVersion() {
   rm -f restify.err
 }
 
-if [[ ${DEBUG^^} = TRUE ]]; then
+if [[ ${DEBUG^^} == TRUE ]]; then
   set -x
   curlArgs=(-v)
   echo "DEBUG: running as $(id -a) with $(ls -ld /data)"
   echo "       current directory is $(pwd)"
 fi
+
+export HOME=/data
 
 downloadPage=https://www.minecraft.net/en-us/download/server/bedrock
 
@@ -103,13 +99,11 @@ case ${VERSION^^} in
     ;;
 esac
 
-if [ ! -f "bedrock_server-${VERSION}" ]; then
+if [[ ! -f "bedrock_server-${VERSION}" ]]; then
 
-  if [[ ! ${DOWNLOAD_URL} ]]; then
+  if [[ -z "${DOWNLOAD_URL}" ]]; then
     binPath=bin-linux
-    if isTrue "${PREVIEW}"; then
-      binPath=bin-linux-preview
-    fi
+    isTrue "${PREVIEW}" && binPath+="-preview"
     DOWNLOAD_URL="https://minecraft.azureedge.net/${binPath}/bedrock-server-${VERSION}.zip"
   fi
 
@@ -117,27 +111,27 @@ if [ ! -f "bedrock_server-${VERSION}" ]; then
   TMP_ZIP="$TMP_DIR/$(basename "${DOWNLOAD_URL}")"
 
   echo "Downloading Bedrock server version ${VERSION} ..."
-  if ! curl "${curlArgs[@]}" -o "${TMP_ZIP}" -fsSL ${DOWNLOAD_URL}; then
+  if ! curl "${curlArgs[@]}" -o "${TMP_ZIP}" -fsSL "${DOWNLOAD_URL}"; then
     echo "ERROR failed to download from ${DOWNLOAD_URL}"
     echo "      Double check that the given VERSION is valid"
     exit 2
   fi
 
   # remove only binaries and some docs, to allow for an upgrade of those
-  rm -rf bedrock_server bedrock_server-* *.so release-notes.txt bedrock_server_how_to.html valid_known_packs.json premium_cache 2> /dev/null
+  rm -rf -- bedrock_server bedrock_server-* *.so release-notes.txt bedrock_server_how_to.html valid_known_packs.json premium_cache 2> /dev/null
 
   bkupDir=backup-pre-${VERSION}
   # fixup any previous interrupted upgrades
   rm -rf "${bkupDir}"
   for d in behavior_packs definitions minecraftpe resource_packs structures treatments world_templates; do
     if [[ -d $d && -n "$(ls $d)" ]]; then
-      mkdir -p $bkupDir/$d
+      mkdir -p "${bkupDir}/$d"
       echo "Backing up $d into $bkupDir"
       if [[ "$d" == "resource_packs" ]]; then
-        mv $d/{chemistry,vanilla} $bkupDir/
-        [[ -n "$(ls $d)" ]] && cp -a $d/* $bkupDir/
+        mv $d/{chemistry,vanilla} "${bkupDir}/"
+        [[ -n "$(ls $d)" ]] && cp -a $d/* "${bkupDir}/"
       else
-        mv $d/* $bkupDir/
+        mv $d/* "${bkupDir}/"
       fi
     fi
   done
@@ -145,22 +139,23 @@ if [ ! -f "bedrock_server-${VERSION}" ]; then
   # remove old package backups, but keep PACKAGE_BACKUP_KEEP
   if (( ${PACKAGE_BACKUP_KEEP:=2} >= 0 )); then
     shopt -s nullglob
+    # shellcheck disable=SC2012
     for d in $( ls -td1 backup-pre-* | tail +$(( PACKAGE_BACKUP_KEEP + 1 )) ); do
-      echo "Pruning $d"
-      rm -rf $d
+      echo "Pruning backup directory: $d"
+      rm -rf "$d"
     done
   fi
 
   # Do not overwrite existing files, which means the cleanup above needs to account for things
   # that MUST be replaced on upgrade
-  unzip -q -n ${TMP_ZIP}
+  unzip -q -n "${TMP_ZIP}"
   [[ $TMP_DIR != /tmp ]] && rm -rf "$TMP_DIR"
 
   chmod +x bedrock_server
-  mv bedrock_server bedrock_server-${VERSION}
+  mv bedrock_server "bedrock_server-${VERSION}"
 fi
 
-if [ -n "$OPS" ] || [ -n "$MEMBERS" ] || [ -n "$VISITORS" ]; then
+if [[ -n "$OPS" || -n "$MEMBERS" || -n "$VISITORS" ]]; then
   echo "Updating permissions"
   jq -n --arg ops "$OPS" --arg members "$MEMBERS" --arg visitors "$VISITORS" '[
   [$ops      | split(",") | map({permission: "operator", xuid:.})],
@@ -174,27 +169,46 @@ if [[ -n "$ALLOW_LIST_USERS" || -n "$WHITE_LIST_USERS" ]]; then
 
   if [[ "$allowListUsers" ]]; then
     echo "Setting allow list"
-    jq -c -n --arg users "$allowListUsers" '$users | split(",") | map({"ignoresPlayerLimit":false,"name": .})' > "allowlist.json"
+    if [[ "$allowListUsers" != *":"* ]]; then
+      jq -c -n --arg users "$allowListUsers" '$users | split(",") | map({"ignoresPlayerLimit":false,"name": .})' > "allowlist.json"
+    else
+      jq -c -n --arg users "$allowListUsers" '$users | split(",") | map(split(":") | {"ignoresPlayerLimit":false,"name": .[0], "xuid": .[1]})' > "allowlist.json"
+    fi
     # activate server property to enable list usage
     ALLOW_LIST=true
   else
     ALLOW_LIST=false
     rm -f allowlist.json
   fi
-else
-  ALLOW_LIST=false
-  rm -f allowlist.json
 fi
-sed -i '/^white-list=.*/d' server.properties #Removes white-list= line from server.properties
+
+# prevent issue with bind mounted server.properties which can not be moved (sed tries to move the file when '-i' is used)
+_SERVER_PROPERTIES=$(sed '/^white-list=.*/d' server.properties) #Removes white-list= line from server.properties
+echo "${_SERVER_PROPERTIES}" > server.properties
 export ALLOW_LIST
 
+# update server.properties with environment settings
 set-property --file server.properties --bulk /etc/bds-property-definitions.json
 
 export LD_LIBRARY_PATH=.
 
+mcServerRunnerArgs=()
+if isTrue "${ENABLE_SSH}"; then
+  mcServerRunnerArgs+=(--remote-console)
+  if ! [[ -v RCON_PASSWORD ]]; then
+    RCON_PASSWORD=$(openssl rand -hex 12)
+    export RCON_PASSWORD
+  fi
+
+  # For ssh access by tools, export the current password.
+  # Use rcon's format to align with Java, as Java uses the rcon password for SSH as well.
+  echo "password=${RCON_PASSWORD}" > "$HOME/.remote-console.env"
+  echo "password: \"${RCON_PASSWORD}\"" > "$HOME/.remote-console.yaml"
+fi
+
 echo "Starting Bedrock server..."
-if [ -f /usr/local/bin/box64 ] ; then
-    exec box64 ./bedrock_server-${VERSION}
+if [[ -f /usr/local/bin/box64 ]] ; then
+    exec mc-server-runner "${mcServerRunnerArgs[@]}" box64 ./"bedrock_server-${VERSION}"
 else
-    exec ./bedrock_server-${VERSION}
+    exec mc-server-runner "${mcServerRunnerArgs[@]}" ./"bedrock_server-${VERSION}"
 fi
