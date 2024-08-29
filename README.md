@@ -7,7 +7,7 @@
 ## Quickstart
 
 The following starts a Bedrock Dedicated Server running a default version and
-exposing the default UDP port: 
+exposing the default UDP port:
 
 ```bash
 docker run -d -it -e EULA=TRUE -p 19132:19132/udp -v mc-bedrock-data:/data itzg/minecraft-bedrock-server
@@ -31,17 +31,11 @@ For Minecraft Java Edition you'll need to use this image instead:
 
 ### Container Specific
 
-- `EULA` (no default) : must be set to `TRUE` to 
+- `EULA` (no default) : must be set to `TRUE` to
   accept the [Minecraft End User License Agreement](https://minecraft.net/terms)
-- `VERSION` (`LATEST`) : can be set to a specific server version or the following special values can be used:
+- `VERSION` (default is `LATEST`) : can be set to a specific server version or the following special values can be used:
   - `LATEST` : determines the latest (non-preview) version and can be used to auto-upgrade on container start
   - `PREVIEW` : determines the latest preview version and will auto-upgrade
-  - `PREVIOUS` : uses the previously maintained major version. Useful when the mobile app is gradually being upgraded across devices
-  - `1.11` : the latest version of 1.11
-  - `1.12` : the latest version of 1.12
-  - `1.13` : the latest version of 1.13
-  - `1.14` : the latest version of 1.14
-  - `1.16` : the latest version of 1.16
   - otherwise any specific server version can be provided. If it is a preview version, also set `PREVIEW` to "true"
 - `UID` (default derived from `/data` owner) : can be set to a specific user ID to run the
   bedrock server process
@@ -52,31 +46,69 @@ For Minecraft Java Edition you'll need to use this image instead:
 
 ### Server Properties
 
-The following environment variables will set the equivalent property in `server.properties`, where each [is described here](https://minecraft.wiki/w/Server.properties#Bedrock_Edition_3).
+The following environment variables will set the equivalent property in `server.properties`, where each [is described here](https://minecraft.wiki/w/Server.properties#Option_keys).
+Typically, each property is configured instead by the UPPER_SNAKE_CASE equivalent.
 
 - `SERVER_NAME`
-- `SERVER_PORT`
-- `SERVER_PORT_V6`
 - `GAMEMODE`
+- `FORCE_GAMEMODE`
 - `DIFFICULTY`
-- `LEVEL_TYPE`
 - `ALLOW_CHEATS`
 - `MAX_PLAYERS`
 - `ONLINE_MODE`
 - `WHITE_LIST`
+- `ALLOW_LIST`
+- `SERVER_PORT`
+- `SERVER_PORT_V6`
+- `ENABLE_LAN_VISIBILITY`
 - `VIEW_DISTANCE`
 - `TICK_DISTANCE`
 - `PLAYER_IDLE_TIMEOUT`
 - `MAX_THREADS`
 - `LEVEL_NAME`
 - `LEVEL_SEED`
+- `LEVEL_TYPE`
 - `DEFAULT_PLAYER_PERMISSION_LEVEL`
 - `TEXTUREPACK_REQUIRED`
+- `CONTENT_LOG_FILE_ENABLED`
+- `CONTENT_LOG_LEVEL`
+- `CONTENT_LOG_CONSOLE_OUTPUT_ENABLED`
+- `COMPRESSION_THRESHOLD`
+- `COMPRESSION_ALGORITHM`
 - `SERVER_AUTHORITATIVE_MOVEMENT`
+- `PLAYER_POSITION_ACCEPTANCE_THRESHOLD`
 - `PLAYER_MOVEMENT_SCORE_THRESHOLD`
+- `PLAYER_MOVEMENT_ACTION_DIRECTION_THRESHOLD`
 - `PLAYER_MOVEMENT_DISTANCE_THRESHOLD`
 - `PLAYER_MOVEMENT_DURATION_THRESHOLD_IN_MS`
 - `CORRECT_PLAYER_MOVEMENT`
+- `SERVER_AUTHORITATIVE_BLOCK_BREAKING`
+- `SERVER_AUTHORITATIVE_BLOCK_BREAKING_PICK_RANGE_SCALAR`
+- `CHAT_RESTRICTION`
+- `DISABLE_PLAYER_INTERACTION`
+- `CLIENT_SIDE_CHUNK_GENERATION_ENABLED`
+- `BLOCK_NETWORK_IDS_ARE_HASHES`
+- `DISABLE_PERSONA`
+- `DISABLE_CUSTOM_SKINS`
+- `SERVER_BUILD_RADIUS_RATIO`
+- `ALLOW_OUTBOUND_SCRIPT_DEBUGGING`
+- `ALLOW_INBOUND_SCRIPT_DEBUGGING`
+- `FORCE_INBOUND_DEBUG_PORT`
+- `SCRIPT_DEBUGGER_AUTO_ATTACH`
+- `SCRIPT_DEBUGGER_AUTO_ATTACH_CONNECT_ADDRESS`
+- `SCRIPT_WATCHDOG_ENABLE`
+- `SCRIPT_WATCHDOG_ENABLE_EXCEPTION_HANDLING`
+- `SCRIPT_WATCHDOG_ENABLE_SHUTDOWN`
+- `SCRIPT_WATCHDOG_HANG_EXCEPTION`
+- `SCRIPT_WATCHDOG_HANG_THRESHOLD`
+- `SCRIPT_WATCHDOG_SPIKE_THRESHOLD`
+- `SCRIPT_WATCHDOG_SLOW_THRESHOLD`
+- `SCRIPT_WATCHDOG_MEMORY_WARNING`
+- `SCRIPT_WATCHDOG_MEMORY_LIMIT`
+- `OP_PERMISSION_LEVEL`
+- `EMIT_SERVER_TELEMETRY`
+- `MSA_GAMERTAGS_ONLY`
+- `ITEM_TRANSACTION_LOGGING_ENABLED`
 
 For example, to configure a flat, creative server instead of the default use:
 
@@ -88,9 +120,9 @@ docker run -d -it --name bds-flat-creative \
 
 ## Exposed Ports
 
-- **UDP** 19132 : the Bedrock server port. 
+- **UDP** 19132 : the Bedrock server port.
   **NOTE** that you must append `/udp` when exposing the port, such as `-p 19132:19132/udp`
-  
+
 ## Volumes
 
 - `/data` : the location where the downloaded server is expanded and ran. Also contains the
@@ -132,7 +164,7 @@ in the "LAN Games" part of the "Friends" tab, such as:
 The Bedrock Dedicated Server requires permissions be defined with XUIDs. There are various tools to look these up online and they
 are also printed to the log when a player joins. There are 3 levels of permissions and 3 options to configure each group:
 
-- `OPS` is used to define operators on the server.  
+- `OPS` is used to define operators on the server.
 ```shell
 -e OPS="1234567890,0987654321"
 ```
@@ -149,7 +181,7 @@ are also printed to the log when a player joins. There are 3 levels of permissio
 
 There are two ways to handle a whitelist:
 
-The first is to set the `ALLOW_LIST` environment variable to true and map in an [allowlist.json](https://minecraft.wiki/w/Whitelist.json) file (previously known as "whitelist.json") that is custom-crafted to the container. 
+The first is to set the `ALLOW_LIST` environment variable to true and map in an [allowlist.json](https://minecraft.wiki/w/Whitelist.json) file (previously known as "whitelist.json") that is custom-crafted to the container.
 
 The other is to set the `ALLOW_LIST_USERS` environment variable to a comma-separated list of gamer tag usernames and their corresponding XUIDs. Each username should be followed by its XUID, separated by a colon. The server will use these details to match the player.
 
@@ -159,23 +191,14 @@ There are various tools to look XUIDs up online and they are also printed to the
 -e ALLOW_LIST_USERS="player1:1234567890,player2:0987654321"
 ```
 
-## Mods Addons 
+## Mods Addons
 
 Also known as behavior or resource packs, in order to add mods into your server you can follow these steps, tested with [OPS (One Player Sleep)](https://foxynotail.com/addons/ops/) and [bedrocktweaks](https://bedrocktweaks.net/resource-packs/)
 
 1. Install the mcpack or mcaddon on the client side first, just to make it easier to copy the files to the server, for Windows 10 files should be located on `C:\Users\USER\AppData\Local\Packages\Microsoft.MinecraftUWP_*\LocalState\games\com.mojang`.
 2. Copy over the folders of the mods from either behavior_packs or resource_packs into the server's volume.
 > If you want to install them without using a client you should be able to unzip the mods directly into the server's volume, .mcaddon should go into behavior_packs and .mcpack into resource_packs. Both .mcaddon and .mcpack are actually renamed .zip files.
-3. On the server's volume we will need to edit `valid_known_packs.json`, you can just copy and paste the definition of another pack and replace path, uuid and version with the mod being installed, uuid and version can be found on the mod behavior or resource _packs/mod/manifest.json, path is the path to the mod's folder.
-```
-	{
-		"file_system" : "RawPath",
-		"path" : "behavior_packs/Foxy'sOneP",
-		"uuid" : "5f51f7b7-85dc-44da-a3ef-a48d8414e4d5",
-		"version" : "3.0.0"
-	}
-```
-4. Lastly create on the server's volume `worlds/$level-name/world_behavior_packs.json`, you'll need to add an entry for each mod like on the previous manifest.json, we only need the uuid now called pack_id and the version replacing dots with commas and double quotes with [ ].
+3. Lastly create on the server's volume `worlds/$level-name/world_behavior_packs.json`, you'll need to add an entry for each mod like on the previous manifest.json, we only need the uuid now called pack_id and the version replacing dots with commas and double quotes with [ ].
 > You can also create a `worlds/$level-name/world_resource_packs.json` but I have seen that putting both resource and behavior packs inside the same json works just fine
 ```
 [
@@ -185,7 +208,7 @@ Also known as behavior or resource packs, in order to add mods into your server 
 	}
 ]
 ```
-5. Restart the server and the mods should be enabled now! when connecting you will get a prompt asking if you want to "Download & Join" or just "Join", You need to Download & Join if you want to actually see the new resource pack added to the server.
+4. Restart the server and the mods should be enabled now! when connecting you will get a prompt asking if you want to "Download & Join" or just "Join", You need to Download & Join if you want to actually see the new resource pack added to the server.
 This prompt is exclusive to resource packs as these alter how minecraft looks while behavior packs alter how minecraft functions and don't need to be downloaded or installed on the client side.
 > If you want to force the resource pack on all clients, there's an option `texturepack-required=false` in `server.properties` that should be changed to `true`.
 > Resource packs can be deleted by going into Settings > Storage > Cached Data, then selecting the pack and clicking on the trash can.
@@ -210,7 +233,7 @@ Alternatively, with stdin and tty enabled (such as using `-it`), attach to the c
 
 ```shell script
 docker attach CONTAINER_NAME_OR_ID
-``` 
+```
 
 While attached, you can execute any server-side commands, such as op'ing your player to be admin:
 
@@ -223,26 +246,33 @@ When finished, detach from the server console using Ctrl-p, Ctrl-q
 ## Deploying with Docker Compose
 
 The [examples](examples) directory contains [an example Docker compose file](examples/docker-compose.yml) that declares:
-- a service running the bedrock server container and exposing UDP port 19132
-- a volume to be attached to the service
+- a service running the bedrock server container and exposing UDP port 19132. In the example is named "bds", short for "Bedrock Dedicated Server", but you can name the service whatever you want
+- a volume attached to the service at the container path `/data`
 
-The service configuration includes some examples of configuring the server properties via environment variables:
 ```yaml
-environment:
-  EULA: "TRUE"
-  GAMEMODE: survival
-  DIFFICULTY: normal
+services:
+  bds:
+    image: itzg/minecraft-bedrock-server
+    environment:
+      EULA: "TRUE"
+    ports:
+      - "19132:19132/udp"
+    volumes:
+      - ./data:/data
+    stdin_open: true
+    tty: true
 ```
 
-From with in the `examples` directory, you can deploy the composition by using:
+Start the server and run in the background using:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
-You can follow the logs using:
+You can follow the logs at any time using:
+
 ```bash
-docker-compose logs -f bds
+docker compose logs -f
 ```
 
 ## Deploying with Kubernetes
@@ -284,3 +314,6 @@ kubectl logs -f deployment/bds
 ## Tutorials
 [@TheTinkerDad]([url](https://github.com/TheTinkerDad)) provides an excellent tutorial on how to host multiple instances on a single port (19132) so that it's discoverable: https://www.youtube.com/watch?v=ds0_ESzjbfs
 
+## Contributing
+
+> When trying to build this Docker Image, ensure that all `.sh` files have a end of line sequence of `LF` not `CLRF` or the build will fail.
